@@ -521,14 +521,19 @@ const loginAsSupervisor = asyncHandler(async (req, res, next) => {
     .select("+password")
     .populate("company")
     .populate("employees");
+
   if (!user) {
     return next(new ErrorResponse("Invalid Credentials", 401));
   }
+
   const isMatch = await user.verifyPass(password);
   if (!isMatch) {
     return next(new ErrorResponse("Invalid Credentials", 401));
   }
-  await subscribeToDevice(user.mqttTopic);
+
+  // Subscribe this user to their specific MQTT topic
+  await subscribeToDevice(user, user.mqttTopic);
+
   const token = await user.getToken();
   res.status(200).json({
     success: true,

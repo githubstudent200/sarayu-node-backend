@@ -6,10 +6,21 @@ const {
 const router = express.Router();
 
 router.get("/messages", (req, res) => {
-  const latestMessage = getLatestMessage();
+  const { email } = req.query; // Ensure this is unique per user (or use req.user)
+
+  if (!email) {
+    return res
+      .status(400)
+      .json({ success: false, message: "Email is required" });
+  }
+
+  const user = { email }; // Replace with req.user if using authentication
+  const latestMessage = getLatestMessage(user);
 
   if (!latestMessage) {
-    return res.json({ success: false, message: "No message available yet" });
+    return res
+      .status(404)
+      .json({ success: false, message: "No message available yet" });
   }
 
   res.json({

@@ -5,53 +5,58 @@ const MessageModel = require("../models/mqtt-message-model");
 // MongoDB Connection
 connectDB();
 
-let device; // Declare device as a global variable to use across the function
-let latestMessage = null; // Move this outside of the function to maintain the global scope
+// Store devices per user
+let devices = {}; // Use this to store devices keyed by user email or MQTT topic
 
-function subscribeToDevice(subscribeSubject) {
+function subscribeToDevice(user, subscribeSubject) {
   let messageBuffer = [];
 
-  if (!device) {
-    // AWS IoT setup
-    device = awsIot.device({
+  if (!devices[user.email]) {
+    // AWS IoT setup for the specific user
+    const device = awsIot.device({
       keyPath: "./AWS_DATA_CERTIFICATES/Private.key",
       certPath:
         "./AWS_DATA_CERTIFICATES/f6430d76618b84f629991c4ad047a64d82867ca67bd9de2a81999b61f8ebc496-certificate.pem.crt",
       caPath: "./AWS_DATA_CERTIFICATES/AmazonRootCA1.pem",
-      clientId: "503561454502",
+      clientId: "503561454502-" + user.email, // unique clientId for each user
       host: "a1uccysxn7j38q-ats.iot.us-east-1.amazonaws.com",
     });
 
+    devices[user.email] = { device, messageBuffer }; // Store the device and buffer
+
     device.on("connect", function () {
-      console.log("Connected to AWS IoT");
+      console.log(`Connected to AWS IoT as user: ${user.email}`);
       device.subscribe(subscribeSubject, function (err, granted) {
         if (err) {
-          console.error("Failed to subscribe:", err);
+          console.error(`Failed to subscribe for ${user.email}:`, err);
         } else {
-          console.log("Subscribed to topic:", granted);
+          console.log(`${user.email} subscribed to topic:`, granted);
         }
       });
     });
 
     device.on("message", function (topic, payload) {
-      latestMessage = {
+      const latestMessage = {
         topic,
         message: payload.toString(),
         timestamp: new Date(),
       };
 
-      messageBuffer.push(latestMessage);
-      console.log("Received message and added to buffer:", latestMessage);
+      devices[user.email].messageBuffer.push(latestMessage);
+      console.log(`Received message for ${user.email}:`, latestMessage);
     });
 
-    // Periodically save message buffer to MongoDB every minute
+    // Periodically save message buffer to MongoDB every minute for this user
     setInterval(async () => {
-      if (messageBuffer.length > 0) {
+      if (devices[user.email].messageBuffer.length > 0) {
+        const messageBuffer = devices[user.email].messageBuffer;
         console.log(
-          `Attempting to append ${messageBuffer.length} messages to the existing document in MongoDB`
+          `Attempting to append ${messageBuffer.length} messages for ${user.email} to MongoDB`
         );
 
-        const topic = latestMessage ? latestMessage.topic : "default_topic";
+        const topic = messageBuffer[0]
+          ? messageBuffer[0].topic
+          : subscribeSubject;
 
         try {
           await MessageModel.updateOne(
@@ -61,27 +66,34 @@ function subscribeToDevice(subscribeSubject) {
           );
 
           console.log(
-            `Appended ${messageBuffer.length} messages to the existing document in MongoDB`
+            `Appended ${messageBuffer.length} messages for ${user.email} to MongoDB`
           );
 
           // Clear the buffer after successfully appending messages
-          messageBuffer = [];
+          devices[user.email].messageBuffer = [];
         } catch (err) {
-          console.error("Error appending messages to MongoDB:", err);
+          console.error(
+            `Error appending messages to MongoDB for ${user.email}:`,
+            err
+          );
         }
       } else {
-        console.log("No messages to append in this interval");
+        console.log(`No messages to append for ${user.email} in this interval`);
       }
     }, 1 * 60 * 1000); // Append messages every 1 minute
   }
 }
 
-// Function to get the latest received message
-const getLatestMessage = () => {
-  if (!latestMessage) {
-    return { success: false, error: "No messages received yet" };
+const getLatestMessage = (user) => {
+  // Ensure the user is passed and exists in devices
+  if (!user || !devices[user.email]) {
+    return null;
   }
-  return latestMessage;
+  const deviceInfo = devices[user.email];
+  if (deviceInfo.messageBuffer.length === 0) {
+    return null;
+  }
+  return deviceInfo.messageBuffer[deviceInfo.messageBuffer.length - 1];
 };
 
 module.exports = {
