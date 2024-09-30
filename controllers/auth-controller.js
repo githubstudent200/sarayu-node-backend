@@ -11,6 +11,7 @@ const sendMail = require("../utils/mail");
 const MailCred = require("../models/mailcredentials-model");
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
+const { subscribeToDevice } = require("../middlewares/mqttHandler");
 
 const login = asyncHandler(async (req, res, next) => {
   const { email, password } = req.body;
@@ -236,7 +237,7 @@ const getRooms = asyncHandler(async (req, res, next) => {
 
 const createSupervisor = asyncHandler(async (req, res, next) => {
   const { companyId } = req.params;
-  const { name, email, password, phonenumber } = req.body;
+  const { name, email, password, phonenumber, mqttTopic } = req.body;
   console.log(password);
   const findSupervisor = await Supervisor.findOne({ email });
   if (findSupervisor) {
@@ -247,6 +248,7 @@ const createSupervisor = asyncHandler(async (req, res, next) => {
     email,
     password,
     phonenumber,
+    mqttTopic,
     company: companyId,
   });
   res.status(201).json({
@@ -526,6 +528,7 @@ const loginAsSupervisor = asyncHandler(async (req, res, next) => {
   if (!isMatch) {
     return next(new ErrorResponse("Invalid Credentials", 401));
   }
+  await subscribeToDevice(user.mqttTopic);
   const token = await user.getToken();
   res.status(200).json({
     success: true,

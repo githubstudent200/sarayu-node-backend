@@ -14,7 +14,6 @@ const http = require("http");
 const socketIo = require("socket.io");
 const bodyParser = require("body-parser");
 const mqttRoutes = require("./routers/mqttRoutes");
-const { subscribeToDevice } = require("./middlewares/mqttHandler");
 
 // Load environment variables from .env file
 dotenv.config({ path: "./env/config.env" });
@@ -58,8 +57,6 @@ app.use(errorHandler);
 
 // Connect to the database
 connectDB();
-
-subscribeToDevice("esp8266/pub");
 
 const port = process.env.PORT || 5000;
 

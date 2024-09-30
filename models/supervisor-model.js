@@ -32,6 +32,10 @@ const supervisorSchema = new mongoose.Schema(
       ref: "Manager",
       required: false,
     },
+    mqttTopic: {
+      type: String,
+      required: false,
+    },
     role: {
       type: String,
       default: "supervisor",
