@@ -1,4 +1,5 @@
 const awsIot = require("aws-iot-device-sdk");
+const moment = require("moment-timezone");
 const connectDB = require("../env/db");
 const MessageModel = require("../models/mqtt-message-model");
 
@@ -36,10 +37,13 @@ function subscribeToDevice(user, subscribeSubject) {
     });
 
     device.on("message", function (topic, payload) {
+      const localTimestamp = moment()
+        .tz("Asia/Kolkata")
+        .format("YYYY-MM-DD HH:mm:ss");
       const latestMessage = {
         topic,
         message: payload.toString(),
-        timestamp: new Date(),
+        timestamp: localTimestamp,
       };
 
       devices[user.email].messageBuffer.push(latestMessage);
