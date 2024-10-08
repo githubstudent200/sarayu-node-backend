@@ -36,7 +36,7 @@ function subscribeToDevice(user, subscribeSubject) {
       });
     });
 
-    device.on("message", function (topic, payload) {
+    device.on("message", async function (topic, payload) {
       const localTimestamp = moment()
         .tz("Asia/Kolkata")
         .format("YYYY-MM-DD HH:mm:ss");
@@ -48,6 +48,21 @@ function subscribeToDevice(user, subscribeSubject) {
 
       devices[user.email].messageBuffer.push(latestMessage);
       console.log(`Received message for ${user.email}:`, latestMessage);
+
+      // Immediately store the latest message in MongoDB
+      try {
+        await MessageModel.updateOne(
+          { topic },
+          { $push: { messages: latestMessage }, topic },
+          { upsert: true }
+        );
+        console.log(`Saved message for ${user.email} to MongoDB immediately`);
+      } catch (err) {
+        console.error(
+          `Error saving message to MongoDB for ${user.email}:`,
+          err
+        );
+      }
     });
 
     // Periodically save message buffer to MongoDB every minute for this user
@@ -84,7 +99,7 @@ function subscribeToDevice(user, subscribeSubject) {
       } else {
         console.log(`No messages to append for ${user.email} in this interval`);
       }
-    }, 1 * 60 * 1000); // Append messages every 1 minute
+    }, 1 * 60 * 1000);
   }
 }
 
