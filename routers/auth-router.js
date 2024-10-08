@@ -32,7 +32,9 @@ const {
   removeManagerFromSupervisor,
   getSinlgeEmployee,
   getAllOperatorsForSupervisor,
-  resetPasswordOfUsers,
+  resetPasswordForSupervisor,
+  resetPasswordForEmployee,
+  resetPasswordForManager,
 } = require("../controllers/auth-controller");
 const router = express.Router();
 
@@ -90,5 +92,8 @@ router.route("/supervisor/removeManager/:id").post(removeManagerFromSupervisor);
 router
   .route("/supervisor/getalloperators/:id")
   .get(getAllOperatorsForSupervisor);
-router.post("/reset-password", resetPasswordOfUsers);
+router.post("/manager/reset-password", resetPasswordForManager);
+router.post("/supervisor/reset-password", resetPasswordForSupervisor);
+router.post("/employee/reset-password", resetPasswordForEmployee);
+
 module.exports = router;

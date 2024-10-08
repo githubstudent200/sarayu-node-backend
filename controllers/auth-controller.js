@@ -1,7 +1,6 @@
 const asyncHandler = require("../middlewares/asyncHandler");
 const ErrorResponse = require("../middlewares/errorResponse");
 const User = require("../models/user-model");
-const Supervisor = require("../models/supervisor-model");
 const Manager = require("../models/manager-model");
 const Company = require("../models/company-model");
 const Room = require("../models/room-model");
@@ -12,6 +11,7 @@ const MailCred = require("../models/mailcredentials-model");
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 const { subscribeToDevice } = require("../middlewares/mqttHandler");
+const Supervisor = require("../models/supervisor-model");
 
 const login = asyncHandler(async (req, res, next) => {
   const { email, password } = req.body;
@@ -542,27 +542,59 @@ const loginAsSupervisor = asyncHandler(async (req, res, next) => {
   });
 });
 
-// Reset password controller
-const resetPasswordOfUsers = asyncHandler(async (req, res, next) => {
+const resetPasswordForSupervisor = asyncHandler(async (req, res, next) => {
   const { email, activePassword, newPassword } = req.body;
-  console.log(newPassword);
   const supervisor = await Supervisor.findOne({ email }).select("+password");
   if (!supervisor) {
-    return res.status(404).json({ success: false, message: "User not found" });
+    return next(new ErrorResponse(`No user found with email ${email}`, 404));
   }
-  const isMatch = await supervisor.verifyPass(activePassword);
-  if (!isMatch) {
-    return res
-      .status(401)
-      .json({ success: false, message: "Invalid current password" });
+  const verifyPass = await supervisor.verifyPass(activePassword);
+  if (!verifyPass) {
+    return next(new ErrorResponse(`Active password did't matched`, 401));
   }
-  const salt = await bcrypt.genSalt();
-  supervisor.password = await bcrypt.hash(newPassword, salt);
+  supervisor.password = newPassword;
   await supervisor.save();
-
   res.status(200).json({
     success: true,
-    message: "Password updated successfully",
+    data: "password changed successfully",
+  });
+});
+
+const resetPasswordForEmployee = asyncHandler(async (req, res, next) => {
+  const { email, newPassword, activePassword } = req.body;
+  const employee = await Employee.findOne({ emial }).select("+password");
+  if (!employee) {
+    return next(
+      new ErrorResponse(`No employee found with email ${email}`, 404)
+    );
+  }
+  const verifyPass = await employee.verifyPass(activePassword);
+  if (!verifyPass) {
+    return next(new ErrorResponse(`Active password did't matched`, 401));
+  }
+  employee.password = newPassword;
+  await employee.save();
+  res.status(200).json({
+    success: true,
+    data: "password changed successfully",
+  });
+});
+
+const resetPasswordForManager = asyncHandler(async (req, res, next) => {
+  const { email, newPassword, activePassword } = req.body;
+  const manager = await Manager.findOne({ email }).select("+password");
+  if (!manager) {
+    return next(new ErrorResponse(`No manager found with email ${email}`, 404));
+  }
+  const verifyPass = await manager.verifyPass(activePassword);
+  if (!verifyPass) {
+    return next(new ErrorResponse(`Active password did't matched `, 401));
+  }
+  manager.password = newPassword;
+  await manager.save();
+  res.status(200).json({
+    success: true,
+    data: "password reseted successfully",
   });
 });
 
@@ -599,5 +631,7 @@ module.exports = {
   removeManagerFromSupervisor,
   getSinlgeEmployee,
   getAllOperatorsForSupervisor,
-  resetPasswordOfUsers,
+  resetPasswordForSupervisor,
+  resetPasswordForEmployee,
+  resetPasswordForManager,
 };
