@@ -41,18 +41,26 @@ router.get("/saved-messages", async (req, res) => {
 });
 
 // POST /api/mqtt/publish
-router.post("/publish", (req, res) => {
-  const { topic, message } = req.body;
+router.post("/publish", async (req, res) => {
+  const { s, p } = req.body;
 
-  if (!topic || !message) {
-    return res
-      .status(400)
-      .json({ success: false, message: "Topic and message are required." });
+  if (!s || !p) {
+    return res.status(400).json({
+      success: false,
+      message: "s and p are required.",
+    });
   }
 
-  publishMessage(topic, message);
-
-  res.json({ success: true, message: "Message published successfully" });
+  try {
+    await publishMessage("esp8266/wifi", { s, p });
+    res.json({ success: true, message: "Message published successfully" });
+  } catch (error) {
+    console.error("Error publishing message:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to publish message.",
+    });
+  }
 });
 
 module.exports = router;
