@@ -35,6 +35,7 @@ const {
   resetPasswordForSupervisor,
   resetPasswordForEmployee,
   resetPasswordForManager,
+  subscribeToEmployeeTopic,
 } = require("../controllers/auth-controller");
 const router = express.Router();
 
@@ -95,5 +96,6 @@ router
 router.post("/manager/reset-password", resetPasswordForManager);
 router.post("/supervisor/reset-password", resetPasswordForSupervisor);
 router.post("/employee/reset-password", resetPasswordForEmployee);
+router.post("/subscribeToEmployeeTopic", subscribeToEmployeeTopic);
 
 module.exports = router;

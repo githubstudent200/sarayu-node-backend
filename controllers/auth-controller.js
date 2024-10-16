@@ -320,12 +320,13 @@ const loginAsEmployee = asyncHandler(async (req, res, next) => {
 //create a employee
 const createEmployee = asyncHandler(async (req, res, next) => {
   const { companyId, supervisorId } = req.params;
-  const { name, email, password, phonenumber } = req.body;
+  const { name, email, password, phonenumber, mqttTopic } = req.body;
   const employee = await Employee.create({
     name,
     email,
     password,
     phonenumber,
+    mqttTopic,
     company: companyId,
     supervisor: supervisorId,
   });
@@ -337,12 +338,13 @@ const createEmployee = asyncHandler(async (req, res, next) => {
 
 const createEmployeeWithoutSupervisor = asyncHandler(async (req, res, next) => {
   const { companyId } = req.params;
-  const { name, email, password, phonenumber } = req.body;
+  const { name, email, password, phonenumber, mqttTopic } = req.body;
   const employee = await Employee.create({
     name,
     email,
     password,
     phonenumber,
+    mqttTopic,
     company: companyId,
   });
   res.status(201).json({
@@ -532,7 +534,9 @@ const loginAsSupervisor = asyncHandler(async (req, res, next) => {
   }
 
   // Subscribe this user to their specific MQTT topic
-  await subscribeToDevice(user, user.mqttTopic);
+  if (user.mqttTopic) {
+    await subscribeToDevice(user, user.mqttTopic);
+  }
 
   const token = await user.getToken();
   res.status(200).json({
@@ -562,7 +566,7 @@ const resetPasswordForSupervisor = asyncHandler(async (req, res, next) => {
 
 const resetPasswordForEmployee = asyncHandler(async (req, res, next) => {
   const { email, newPassword, activePassword } = req.body;
-  const employee = await Employee.findOne({ emial }).select("+password");
+  const employee = await Employee.findOne({ email }).select("+password");
   if (!employee) {
     return next(
       new ErrorResponse(`No employee found with email ${email}`, 404)
@@ -595,6 +599,14 @@ const resetPasswordForManager = asyncHandler(async (req, res, next) => {
   res.status(200).json({
     success: true,
     data: "password reseted successfully",
+  });
+});
+
+const subscribeToEmployeeTopic = asyncHandler(async (req, res, next) => {
+  await subscribeToDevice(req.body, req.body.mqttTopic);
+  res.status(200).json({
+    success: true,
+    data: [],
   });
 });
 
@@ -634,4 +646,5 @@ module.exports = {
   resetPasswordForSupervisor,
   resetPasswordForEmployee,
   resetPasswordForManager,
+  subscribeToEmployeeTopic,
 };
