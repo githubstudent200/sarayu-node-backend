@@ -1,8 +1,7 @@
-// MongoDB Schema
 const mongoose = require("mongoose");
 
 const messageSchema = new mongoose.Schema({
-  topic: String,
+  topic: { type: String, index: true },
   messages: [
     {
       message: String,
@@ -11,6 +10,8 @@ const messageSchema = new mongoose.Schema({
   ],
   savedAt: { type: Date, default: Date.now },
 });
+
+messageSchema.index({ topic: 1 });
 
 const MessageModel = mongoose.model("Message", messageSchema);
 

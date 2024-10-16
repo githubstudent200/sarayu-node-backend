@@ -33,9 +33,36 @@ router.get("/messages", (req, res) => {
 router.post("/saved-messages", async (req, res) => {
   try {
     const { topic } = req.body;
-    const messages = await MessageModel.find({ topic });
-    res.json({ success: true, data: messages });
+    const page = Math.max(1, parseInt(req.query.page)) || 1;
+    const limit = Math.min(Math.max(1, parseInt(req.query.limit)), 100) || 10;
+
+    const topicDocument = await MessageModel.findOne({ topic });
+
+    if (!topicDocument) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Topic not found." });
+    }
+
+    const messages = topicDocument.messages || [];
+    const skip = (page - 1) * limit;
+    const paginatedMessages = messages.slice(skip, skip + limit);
+    const totalMessages = messages.length;
+    const totalPages = Math.ceil(totalMessages / limit);
+
+    res.json({
+      success: true,
+      data: {
+        topic: topicDocument.topic,
+        messagesCount: paginatedMessages.length,
+        messages: paginatedMessages,
+        totalMessages,
+        page,
+        totalPages,
+      },
+    });
   } catch (err) {
+    console.error(err);
     res
       .status(500)
       .json({ success: false, message: "Error fetching messages" });
