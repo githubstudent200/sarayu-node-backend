@@ -34,7 +34,13 @@ router.post("/saved-messages", async (req, res) => {
   try {
     const { topic } = req.body;
     const page = Math.max(1, parseInt(req.query.page)) || 1;
-    const limit = Math.min(Math.max(1, parseInt(req.query.limit)), 100) || 10;
+    const limit = Math.max(1, parseInt(req.query.limit)) || 10; // Removed the min 100 limit
+
+    const { fromDate, toDate } = req.query;
+
+    // Convert to Date objects
+    const from = fromDate ? new Date(fromDate) : null;
+    const to = toDate ? new Date(toDate) : null;
 
     const topicDocument = await MessageModel.findOne({ topic });
 
@@ -45,9 +51,16 @@ router.post("/saved-messages", async (req, res) => {
     }
 
     const messages = topicDocument.messages || [];
+
+    // Filter messages based on date range
+    const filteredMessages = messages.filter((message) => {
+      const messageDate = new Date(message.timestamp);
+      return (!from || messageDate >= from) && (!to || messageDate <= to);
+    });
+
     const skip = (page - 1) * limit;
-    const paginatedMessages = messages.slice(skip, skip + limit);
-    const totalMessages = messages.length;
+    const paginatedMessages = filteredMessages.slice(skip, skip + limit);
+    const totalMessages = filteredMessages.length;
     const totalPages = Math.ceil(totalMessages / limit);
 
     res.json({
