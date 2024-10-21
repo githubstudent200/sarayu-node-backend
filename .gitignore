@@ -89,7 +89,7 @@ public
 .env.production
 .env.local
 .env.*.local
-config.env
+env/config.env
 
 
 # VS Code settings and workspace
