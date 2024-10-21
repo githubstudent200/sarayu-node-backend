@@ -12,11 +12,10 @@ const authRoute = require("./routers/auth-router");
 const supportmailRoute = require("./routers/supportmail-router");
 const http = require("http");
 const socketIo = require("socket.io");
-const bodyParser = require("body-parser");
 const mqttRoutes = require("./routers/mqttRoutes");
 
 // Load environment variables from .env file
-dotenv.config();
+dotenv.config({ path: "./.env" });
 
 const app = express(); // Create an Express application
 const server = http.createServer(app);
