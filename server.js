@@ -16,7 +16,7 @@ const bodyParser = require("body-parser");
 const mqttRoutes = require("./routers/mqttRoutes");
 
 // Load environment variables from .env file
-dotenv.config({ path: "./env/config.env" });
+dotenv.config();
 
 const app = express(); // Create an Express application
 const server = http.createServer(app);
