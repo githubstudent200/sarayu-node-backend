@@ -64,7 +64,13 @@ employeeSchema.pre("save", async function (next) {
 // method to generate the jwt token for the loggedin or signedup users
 employeeSchema.methods.getToken = function () {
   return jwt.sign(
-    { id: this._id, name: this.name, email: this.email, role: this.role },
+    {
+      id: this._id,
+      name: this.name,
+      email: this.email,
+      role: this.role,
+      topic: this.mqttTopic,
+    },
     process.env.JWT_SECRET,
     {
       expiresIn: "3d",

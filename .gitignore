@@ -91,7 +91,6 @@ public
 .env.*.local
 config.env
 
-
 # VS Code settings and workspace
 .vscode/
 
