@@ -5,7 +5,7 @@ const mongoose = require("mongoose");
 
 const connectDB = () => {
   mongoose
-    .connect(process.env.DATABASE_URL)
+    .connect("mongodb://localhost:27017/sarayu-project-local-db")
     .then(() => {
       console.log("Database connection successfull!");
     })

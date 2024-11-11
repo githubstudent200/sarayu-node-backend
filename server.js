@@ -13,6 +13,7 @@ const supportmailRoute = require("./routers/supportmail-router");
 const http = require("http");
 const socketIo = require("socket.io");
 const mqttRoutes = require("./routers/mqttRoutes");
+const { subscribeToTopic } = require("./middlewares/mqttHandler");
 
 // Load environment variables from .env file
 dotenv.config({ path: "./.env" });
@@ -35,7 +36,7 @@ app.use(
 );
 
 app.use(cookieParser()); // Enable cookie parsing
-app.use(morgan("dev")); // Enable logging with Morgan in 'dev' format
+// app.use(morgan("dev"));
 
 // Socket.IO connection
 io.on("connection", (socket) => {

@@ -1,121 +1,53 @@
+// mqttHandler.js
 const awsIot = require("aws-iot-device-sdk");
-const moment = require("moment-timezone");
-const connectDB = require("../env/db");
 const MessageModel = require("../models/mqtt-message-model");
 
-// MongoDB Connection
-connectDB();
+// AWS IoT Core device configuration
+const device = awsIot.device({
+  keyPath: "./AWS_DATA_CERTIFICATES/Private.key",
+  certPath: "./AWS_DATA_CERTIFICATES/device.crt",
+  caPath: "./AWS_DATA_CERTIFICATES/AmazonRootCA1.pem",
+  clientId: "503561454502",
+  host: "a1uccysxn7j38q-ats.iot.ap-south-1.amazonaws.com",
+});
 
-// Store devices per user
-let devices = {}; // Use this to store devices keyed by user email or MQTT topic
+device.on("connect", () => {
+  console.log("Connected to AWS IoT");
+  // Subscribe to a base topic if needed
+});
 
-function subscribeToDevice(user, subscribeSubject) {
-  let messageBuffer = [];
-
-  if (!devices[user.email]) {
-    // AWS IoT setup for the specific user
-    const device = awsIot.device({
-      keyPath: "./AWS_DATA_CERTIFICATES/Private.key",
-      certPath:
-        "./AWS_DATA_CERTIFICATES/f6430d76618b84f629991c4ad047a64d82867ca67bd9de2a81999b61f8ebc496-certificate.pem.crt",
-      caPath: "./AWS_DATA_CERTIFICATES/AmazonRootCA1.pem",
-      clientId: "503561454502-" + user.email, // unique clientId for each user
-      host: "a1uccysxn7j38q-ats.iot.us-east-1.amazonaws.com",
-    });
-
-    devices[user.email] = { device, messageBuffer }; // Store the device and buffer
-
-    device.on("connect", function () {
-      console.log(`Connected to AWS IoT as user: ${user.email}`);
-      device.subscribe(subscribeSubject, function (err, granted) {
-        if (err) {
-          console.error(`Failed to subscribe for ${user.email}:`, err);
-        } else {
-          console.log(`${user.email} subscribed to topic:`, granted);
-        }
-      });
-    });
-
-    device.on("message", async function (topic, payload) {
-      const localTimestamp = moment()
-        .tz("Asia/Kolkata")
-        .format("YYYY-MM-DD HH:mm:ss");
-      const latestMessage = {
-        topic,
-        message: payload.toString(),
-        timestamp: localTimestamp,
-      };
-
-      devices[user.email].messageBuffer.push(latestMessage);
-      console.log(`Received message for ${user.email}:`, latestMessage);
-
-      // Immediately store the latest message in MongoDB
-      try {
-        await MessageModel.updateOne(
-          { topic },
-          { $push: { messages: latestMessage }, topic },
-          { upsert: true }
-        );
-        console.log(`Saved message for ${user.email} to MongoDB immediately`);
-      } catch (err) {
-        console.error(
-          `Error saving message to MongoDB for ${user.email}:`,
-          err
-        );
-      }
-    });
-
-    // Periodically save message buffer to MongoDB every minute for this user
-    setInterval(async () => {
-      if (devices[user.email].messageBuffer.length > 0) {
-        const messageBuffer = devices[user.email].messageBuffer;
-        console.log(
-          `Attempting to append ${messageBuffer.length} messages for ${user.email} to MongoDB`
-        );
-
-        const topic = messageBuffer[0]
-          ? messageBuffer[0].topic
-          : subscribeSubject;
-
-        try {
-          await MessageModel.updateOne(
-            { topic },
-            { $push: { messages: { $each: messageBuffer } }, topic },
-            { upsert: true }
-          );
-
-          console.log(
-            `Appended ${messageBuffer.length} messages for ${user.email} to MongoDB`
-          );
-
-          // Clear the buffer after successfully appending messages
-          devices[user.email].messageBuffer = [];
-        } catch (err) {
-          console.error(
-            `Error appending messages to MongoDB for ${user.email}:`,
-            err
-          );
-        }
-      } else {
-        console.log(`No messages to append for ${user.email} in this interval`);
-      }
-    }, 1 * 60 * 1000);
+device.on("message", async (topic, payload) => {
+  try {
+    console.log(`Message received on topic ${topic}: ${payload.toString()}`);
+    const messageData = JSON.parse(payload.toString());
+    await MessageModel.findOneAndUpdate(
+      { topic },
+      { $push: { messages: { message: messageData, timestamp: new Date() } } },
+      { upsert: true, new: true }
+    );
+  } catch (error) {
+    console.error("Error processing message:", error);
   }
-}
+});
 
-const getLatestMessage = (user) => {
-  // Ensure the user is passed and exists in devices
-  if (!user || !devices[user.email]) {
-    return null;
-  }
-  const deviceInfo = devices[user.email];
-  if (deviceInfo.messageBuffer.length === 0) {
-    return null;
-  }
-  return deviceInfo.messageBuffer[deviceInfo.messageBuffer.length - 1];
+// Function to subscribe to topics dynamically
+const subscribeToTopic = (topic) => {
+  device.subscribe(topic, (err) => {
+    if (err) {
+      console.error(`Failed to subscribe to topic ${topic}`, err);
+    } else {
+      console.log(`Subscribed to topic ${topic}`);
+    }
+  });
 };
 
-module.exports = {
-  subscribeToDevice,
-  getLatestMessage,
+// Function to get the latest message from a specific user/topic
+const getLatestMessage = async (topic) => {
+  const topicData = await MessageModel.findOne({ topic });
+  if (topicData && topicData.messages.length > 0) {
+    return topicData.messages[topicData.messages.length - 1];
+  }
+  return null;
 };
+
+module.exports = { subscribeToTopic, getLatestMessage };

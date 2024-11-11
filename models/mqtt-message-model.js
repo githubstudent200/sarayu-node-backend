@@ -1,18 +1,14 @@
+// mqtt-message-model.js
 const mongoose = require("mongoose");
 
 const messageSchema = new mongoose.Schema({
-  topic: { type: String, index: true },
-  messages: [
-    {
-      message: String,
-      timestamp: Date,
-    },
-  ],
-  savedAt: { type: Date, default: Date.now },
+  message: String,
+  timestamp: { type: Date, index: true, default: Date.now },
 });
 
-messageSchema.index({ topic: 1 });
+const mqttMessageSchema = new mongoose.Schema({
+  topic: { type: String, required: true, unique: true },
+  messages: [messageSchema],
+});
 
-const MessageModel = mongoose.model("Message", messageSchema);
-
-module.exports = MessageModel;
+module.exports = mongoose.model("MqttMessage", mqttMessageSchema);

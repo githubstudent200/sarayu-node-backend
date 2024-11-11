@@ -37,9 +37,13 @@ const employeeSchema = new mongoose.Schema(
       select: false,
       required: [true, "Password is required"],
     },
-    mqttTopic: {
-      type: String,
-      required: false,
+    topics: {
+      type: [String],
+      default: [
+        "sarayu/device1/increment",
+        "sarayu/device1/decrement",
+        "sarayu/device1/random",
+      ],
     },
     role: {
       type: String,
