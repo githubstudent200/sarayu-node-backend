@@ -32,9 +32,16 @@ const supervisorSchema = new mongoose.Schema(
       ref: "Manager",
       required: false,
     },
-    mqttTopic: {
-      type: String,
-      required: false,
+    topics: {
+      type: [String],
+      default: [
+        "sarayu/device1/increment",
+        "sarayu/device1/decrement",
+        "sarayu/device1/random",
+        "sarayu/device1/random1",
+        "sarayu/device1/random2",
+        "sarayu/device1/random3",
+      ],
     },
     role: {
       type: String,
