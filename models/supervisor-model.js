@@ -40,7 +40,15 @@ const supervisorSchema = new mongoose.Schema(
         "sarayu/device1/random",
         "sarayu/device1/random1",
         "sarayu/device1/random2",
-        "sarayu/device1/random3",
+        "sarayu/device1/water",
+      ],
+    },
+    favorites: {
+      type: [String],
+      default: [
+        "sarayu/device1/increment",
+        "sarayu/device1/decrement",
+        "sarayu/device1/random",
       ],
     },
     role: {
