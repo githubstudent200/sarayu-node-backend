@@ -2,10 +2,10 @@
 is an Object Data Modeling (ODM) library for MongoDB and Node.js. Here's a breakdown of what the
 code does: */
 const mongoose = require("mongoose");
-
+// mongodb://localhost:27017/sarayu-project-local-db
 const connectDB = () => {
   mongoose
-    .connect("mongodb://localhost:27017/sarayu-project-local-db")
+    .connect(process.env.DATABASE_URL)
     .then(() => {
       console.log("Database connection successfull!");
     })

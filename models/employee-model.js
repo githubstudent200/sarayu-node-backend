@@ -45,7 +45,7 @@ const employeeSchema = new mongoose.Schema(
         "sarayu/device1/random",
         "sarayu/device1/random1",
         "sarayu/device1/random2",
-        "sarayu/device1/random3",
+        "sarayu/device1/water",
       ],
     },
     role: {
