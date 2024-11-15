@@ -2,6 +2,8 @@
 const awsIot = require("aws-iot-device-sdk");
 const MessageModel = require("../models/mqtt-message-model");
 
+let latestMessages = {}; // Store the latest live message per topic
+
 // AWS IoT Core device configuration
 const device = awsIot.device({
   keyPath: "./AWS_DATA_CERTIFICATES/Private.key",
@@ -13,16 +15,20 @@ const device = awsIot.device({
 
 device.on("connect", () => {
   console.log("Connected to AWS IoT");
-  // Subscribe to a base topic if needed
 });
 
 device.on("message", async (topic, payload) => {
   try {
-    console.log(`Message received on topic ${topic}: ${payload.toString()}`);
     const messageData = JSON.parse(payload.toString());
+    const timestamp = new Date();
+
+    // Save the latest message in-memory for quick access
+    latestMessages[topic] = { message: messageData, timestamp };
+
+    // Also save the message to MongoDB
     await MessageModel.findOneAndUpdate(
       { topic },
-      { $push: { messages: { message: messageData, timestamp: new Date() } } },
+      { $push: { messages: { message: messageData, timestamp } } },
       { upsert: true, new: true }
     );
   } catch (error) {
@@ -41,13 +47,9 @@ const subscribeToTopic = (topic) => {
   });
 };
 
-// Function to get the latest message from a specific user/topic
-const getLatestMessage = async (topic) => {
-  const topicData = await MessageModel.findOne({ topic });
-  if (topicData && topicData.messages.length > 0) {
-    return topicData.messages[topicData.messages.length - 1];
-  }
-  return null;
+// Function to get the latest live message from memory
+const getLatestLiveMessage = (topic) => {
+  return latestMessages[topic] || null;
 };
 
-module.exports = { subscribeToTopic, getLatestMessage };
+module.exports = { subscribeToTopic, getLatestLiveMessage };

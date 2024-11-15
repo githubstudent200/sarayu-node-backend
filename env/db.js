@@ -3,6 +3,7 @@ is an Object Data Modeling (ODM) library for MongoDB and Node.js. Here's a break
 code does: */
 const mongoose = require("mongoose");
 // mongodb://localhost:27017/sarayu-project-local-db
+// "mongodb+srv://samithrgowda:7zsJuGajQ7ONZicL@srdbcluster.b8lex.mongodb.net/SRDB2?retryWrites=true&w=majority&appName=SRDBCLUSTER"
 const connectDB = () => {
   mongoose
     .connect(process.env.DATABASE_URL)
