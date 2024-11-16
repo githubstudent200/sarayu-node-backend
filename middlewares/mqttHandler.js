@@ -21,7 +21,6 @@ device.on("message", async (topic, payload) => {
   try {
     const messageData = JSON.parse(payload.toString());
     const timestamp = new Date();
-
     // Save the latest message in-memory for quick access
     latestMessages[topic] = { message: messageData, timestamp };
 
@@ -31,6 +30,7 @@ device.on("message", async (topic, payload) => {
       { $push: { messages: { message: messageData, timestamp } } },
       { upsert: true, new: true }
     );
+    console.log(messageData)
   } catch (error) {
     console.error("Error processing message:", error);
   }
